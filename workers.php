@@ -1,47 +1,654 @@
-<?php include "db_connect.php"; ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Workers List</title>
+<meta charset="UTF-8">
+<title>WorkForce Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg:        #0f1117;
+    --surface:   #181c27;
+    --surface2:  #1e2333;
+    --border:    #2a3045;
+    --accent:    #4f8ef7;
+    --accent2:   #7c5cfc;
+    --text:      #e8eaf0;
+    --muted:     #8891aa;
+    --card-bg:   #181c27;
+    --navbar-h:  62px;
+    --sidebar-w: 270px;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+}
+
+/* ── NAVBAR ── */
+.navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--navbar-h);
+    background: rgba(15,17,23,0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    z-index: 100;
+}
+
+.navbar-brand {
+    font-family: 'Syne', sans-serif;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.navbar-brand .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    transition: color .2s, background .2s;
+}
+
+.nav-links a:hover { color: var(--text); background: var(--surface2); }
+
+.nav-links .btn-add {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff !important;
+    font-weight: 600;
+    padding: 7px 16px;
+}
+
+.nav-links .btn-add:hover { opacity: .88; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+
+/* ── LAYOUT ── */
+.layout {
+    display: flex;
+    padding-top: var(--navbar-h);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    position: fixed;
+    top: var(--navbar-h);
+    left: 0;
+    bottom: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.sidebar-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.filter-group label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+
+.filter-group select,
+.filter-group input[type="number"],
+.filter-group input[type="text"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    outline: none;
+    transition: border-color .2s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238891aa' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+.filter-group select:focus,
+.filter-group input:focus { border-color: var(--accent); }
+
+.filter-group input[type="number"] { background-image: none; }
+
+.sidebar-divider {
+    height: 1px;
+    background: var(--border);
+}
+
+.btn-apply {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: .3px;
+    transition: opacity .2s;
+}
+
+.btn-apply:hover { opacity: .85; }
+
+.btn-reset {
+    width: 100%;
+    padding: 10px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: color .2s, border-color .2s;
+}
+
+.btn-reset:hover { color: var(--text); border-color: var(--muted); }
+
+/* ── MAIN CONTENT ── */
+.main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 28px 28px 40px;
+    min-height: calc(100vh - var(--navbar-h));
+}
+
+.main-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.main-header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.worker-count {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+/* ── SORT BAR ── */
+.sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.sort-bar span {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.sort-bar select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 7px 30px 7px 12px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238891aa' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+/* ── WORKER GRID ── */
+.worker-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+}
+
+/* ── WORKER CARD ── */
+.worker-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform .22s, border-color .22s, box-shadow .22s;
+    cursor: pointer;
+    position: relative;
+}
+
+.worker-card:hover {
+    transform: translateY(-5px);
+    border-color: #3a4260;
+    box-shadow: 0 16px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(79,142,247,.15);
+}
+
+.worker-card:hover .card-overlay {
+    opacity: 1;
+}
+
+.card-img-wrap {
+    width: 100%;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+    background: var(--surface2);
+    position: relative;
+}
+
+.card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .35s;
+}
+
+.worker-card:hover .card-img-wrap img {
+    transform: scale(1.06);
+}
+
+/* Fallback avatar if no photo */
+.avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e2845, #1a1e30);
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: rgba(255,255,255,.15);
+    letter-spacing: -1px;
+}
+
+.card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(10,12,20,.7) 0%, transparent 55%);
+    opacity: 0;
+    transition: opacity .3s;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 14px;
+}
+
+.card-overlay span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(79,142,247,.85);
+    padding: 5px 14px;
+    border-radius: 20px;
+    letter-spacing: .4px;
+}
+
+.card-info {
+    padding: 13px 14px 14px;
+}
+
+.card-info h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-info .profession {
+    font-size: 12.5px;
+    color: var(--accent);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.badge {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge.avail {
+    color: #4ade80;
+    border-color: rgba(74,222,128,.25);
+    background: rgba(74,222,128,.07);
+}
+
+/* Empty state */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+}
+
+.empty-state p { font-size: 15px; margin-top: 10px; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .worker-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 880px) {
+    .worker-grid { grid-template-columns: repeat(2, 1fr); }
+    .main { padding: 20px 16px; }
+}
+
+@media (max-width: 600px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .worker-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+</style>
 </head>
 <body>
 
-<h2>All Workers</h2>
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <div class="dot"></div>
+        WorkForce Manager
+    </div>
+    <div class="nav-links">
+        <a href="#">Browse</a>
+        <a href="#">Bookings</a>
+        <a href="#">Analytics</a>
+        <a href="add_worker.php" class="btn-add">+ Add Worker</a>
+    </div>
+</nav>
 
-<a href="add_worker.php">+ Add Worker</a>
-<br><br>
+<div class="layout">
 
-<table border="1" cellpadding="10">
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Profession</th>
-        <th>Experience</th>
-        <th>Location</th>
-        <th>Actions</th>
-    </tr>
+    <!-- SIDEBAR (fixed) -->
+    <aside class="sidebar">
+        <div class="sidebar-title">Filters</div>
 
-<?php
-$result = mysqli_query($conn, "SELECT * FROM workers");
+        <div class="filter-group">
+            <label>Profession</label>
+            <select name="profession" id="f-profession">
+                <option value="">All Professions</option>
+                <?php
+                include "db_connect.php";
+                $profs = mysqli_query($conn, "SELECT DISTINCT profession FROM workers ORDER BY profession");
+                while ($p = mysqli_fetch_assoc($profs)) {
+                    $sel = (isset($_GET['profession']) && $_GET['profession'] === $p['profession']) ? 'selected' : '';
+                    echo "<option value='{$p['profession']}' $sel>{$p['profession']}</option>";
+                }
+                ?>
+            </select>
+        </div>
 
-while ($row = mysqli_fetch_assoc($result)) {
-?>
-    <tr>
-        <td><?= $row['id'] ?></td>
-        <td><?= $row['name'] ?></td>
-        <td><?= $row['profession'] ?></td>
-        <td><?= $row['experience'] ?> years</td>
-        <td><?= $row['location'] ?></td>
-        <td>
-            <a href="worker_details.php?id=<?= $row['id'] ?>">View</a> |
-            <a href="edit_worker.php?id=<?= $row['id'] ?>">Edit</a> |
-            <a href="delete_worker.php?id=<?= $row['id'] ?>" onclick="return confirm('Delete this worker?')">Delete</a>
-        </td>
-    </tr>
-<?php } ?>
+        <div class="filter-group">
+            <label>Location</label>
+            <select name="location" id="f-location">
+                <option value="">All Locations</option>
+                <?php
+                $locs = mysqli_query($conn, "SELECT DISTINCT location FROM workers ORDER BY location");
+                while ($l = mysqli_fetch_assoc($locs)) {
+                    $sel = (isset($_GET['location']) && $_GET['location'] === $l['location']) ? 'selected' : '';
+                    echo "<option value='{$l['location']}' $sel>{$l['location']}</option>";
+                }
+                ?>
+            </select>
+        </div>
 
-</table>
+        <div class="filter-group">
+            <label>Min Experience (yrs)</label>
+            <input type="number" id="f-exp" min="0" placeholder="Any"
+                   value="<?= htmlspecialchars($_GET['min_exp'] ?? '') ?>">
+        </div>
 
+        <div class="filter-group">
+            <label>Min Rating</label>
+            <input type="number" id="f-rating" step="0.1" min="0" max="5" placeholder="Any"
+                   value="<?= htmlspecialchars($_GET['min_rating'] ?? '') ?>">
+        </div>
+
+        <div class="filter-group">
+            <label>Availability</label>
+            <select id="f-avail">
+                <option value="">Any</option>
+                <option value="available" <?= (($_GET['availability'] ?? '') === 'available') ? 'selected' : '' ?>>Available</option>
+                <option value="busy"      <?= (($_GET['availability'] ?? '') === 'busy')      ? 'selected' : '' ?>>Busy</option>
+            </select>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <button class="btn-apply" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn-reset" onclick="resetFilters()">Reset</button>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+        <div class="main-header">
+            <h1>Workers</h1>
+            <span class="worker-count" id="worker-count"></span>
+        </div>
+
+        <div class="sort-bar">
+            <span>Sort by</span>
+            <select id="f-sort" onchange="applyFilters()">
+                <option value="name"       <?= (($_GET['sort'] ?? '') === 'name')       ? 'selected' : '' ?>>Name</option>
+                <option value="experience" <?= (($_GET['sort'] ?? '') === 'experience') ? 'selected' : '' ?>>Experience</option>
+                <option value="rating"     <?= (($_GET['sort'] ?? '') === 'rating')     ? 'selected' : '' ?>>Rating</option>
+                <option value="newest"     <?= (($_GET['sort'] ?? '') === 'newest')     ? 'selected' : '' ?>>Newest</option>
+            </select>
+        </div>
+
+        <div class="worker-grid" id="worker-grid">
+        <?php
+        // --- Build query with filters ---
+        $where = [];
+        $params = [];
+        $types  = '';
+
+        if (!empty($_GET['profession'])) {
+            $where[] = "profession = ?";
+            $params[] = $_GET['profession'];
+            $types .= 's';
+        }
+        if (!empty($_GET['location'])) {
+            $where[] = "location = ?";
+            $params[] = $_GET['location'];
+            $types .= 's';
+        }
+        if (isset($_GET['min_exp']) && $_GET['min_exp'] !== '') {
+            $where[] = "experience >= ?";
+            $params[] = (int)$_GET['min_exp'];
+            $types .= 'i';
+        }
+        if (isset($_GET['min_rating']) && $_GET['min_rating'] !== '') {
+            $where[] = "rating >= ?";
+            $params[] = (float)$_GET['min_rating'];
+            $types .= 'd';
+        }
+        if (!empty($_GET['availability'])) {
+            $where[] = "availability = ?";
+            $params[] = $_GET['availability'];
+            $types .= 's';
+        }
+
+        $sort_map = [
+            'name'       => 'name ASC',
+            'experience' => 'experience DESC',
+            'rating'     => 'rating DESC',
+            'newest'     => 'id DESC',
+        ];
+        $sort_col = $sort_map[$_GET['sort'] ?? ''] ?? 'name ASC';
+
+        $sql = "SELECT * FROM workers";
+        if ($where) $sql .= " WHERE " . implode(" AND ", $where);
+        $sql .= " ORDER BY $sort_col";
+
+        if ($params) {
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $result = $stmt->get_result();
+        } else {
+            $result = mysqli_query($conn, $sql);
+        }
+
+        $count = mysqli_num_rows($result);
+
+        if ($count === 0) {
+            echo '<div class="empty-state"><p>No workers match your filters.</p></div>';
+        }
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $name      = htmlspecialchars($row['name']);
+            $prof      = htmlspecialchars($row['profession']);
+            $exp       = htmlspecialchars($row['experience']);
+            $avail     = $row['availability'] ?? '';
+            $photo     = !empty($row['photo']) ? htmlspecialchars($row['photo']) : '';
+            $initials  = strtoupper(implode('', array_map(fn($w) => $w[0], array_slice(explode(' ', $row['name']), 0, 2))));
+            $id        = $row['id'];
+        ?>
+        <a class="worker-card" href="worker_details.php?id=<?= $id ?>">
+            <div class="card-img-wrap">
+                <?php if ($photo): ?>
+                    <img src="uploads/<?= $photo ?>" alt="<?= $name ?>" loading="lazy">
+                <?php else: ?>
+                    <div class="avatar-fallback"><?= $initials ?></div>
+                <?php endif; ?>
+                <div class="card-overlay"><span>View Profile →</span></div>
+            </div>
+            <div class="card-info">
+                <h3><?= $name ?></h3>
+                <div class="profession"><?= $prof ?></div>
+                <div class="card-meta">
+                    <span class="badge"><?= $exp ?> yrs</span>
+                    <?php if ($avail === 'available'): ?>
+                        <span class="badge avail">● Available</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </a>
+        <?php } ?>
+        </div>
+    </main>
+</div>
+
+<script>
+// Show total count
+document.getElementById('worker-count').textContent = '<?= $count ?> worker<?= $count !== 1 ? "s" : "" ?> found';
+
+function applyFilters() {
+    const params = new URLSearchParams();
+    const profession = document.getElementById('f-profession').value;
+    const location   = document.getElementById('f-location').value;
+    const exp        = document.getElementById('f-exp').value;
+    const rating     = document.getElementById('f-rating').value;
+    const avail      = document.getElementById('f-avail').value;
+    const sort       = document.getElementById('f-sort').value;
+
+    if (profession) params.set('profession', profession);
+    if (location)   params.set('location', location);
+    if (exp)        params.set('min_exp', exp);
+    if (rating)     params.set('min_rating', rating);
+    if (avail)      params.set('availability', avail);
+    if (sort)       params.set('sort', sort);
+
+    window.location.search = params.toString();
+}
+
+function resetFilters() {
+    window.location.href = window.location.pathname;
+}
+
+// Subtle stagger animation on cards
+document.querySelectorAll('.worker-card').forEach((card, i) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(18px)';
+    card.style.transition = 'opacity .3s ease, transform .3s ease, border-color .22s, box-shadow .22s';
+    setTimeout(() => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+    }, 60 + i * 45);
+});
+</script>
 </body>
 </html>
