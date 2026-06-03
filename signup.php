@@ -62,7 +62,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $stmt = $conn->prepare("INSERT INTO workers (name, profession, skill, experience, location, phone, email, photo, hourly_rate, availability, password, approved) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
-            $stmt->bind_param("sssississss", $name, $profession, $skill, $experience, $location, $phone, $email, $photo, $hourly_rate, $availability, $hash);
+            $stmt->bind_param(
+    "sssisssssss",
+    $name,
+    $profession,
+    $skill,
+    $experience,
+    $location,
+    $phone,
+    $email,
+    $photo,
+    $hourly_rate,
+    $availability,
+    $hash
+);
             if ($stmt->execute()) {
                 // Notify all admins
                 $adminRes = $conn->query("SELECT id FROM admins");
