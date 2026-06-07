@@ -147,6 +147,7 @@ $initials   = strtoupper(implode('', array_map(fn($w) => $w[0], array_slice(expl
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
 </style>
 <style><?php include "navbar.css"; ?></style>
+<style><?php include "footer.css"; ?></style>
 <style>
 .page{padding-top:calc(var(--navbar-h)+36px);padding-bottom:60px;max-width:720px;margin:0 auto;padding-left:24px;padding-right:24px;}
 .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;text-decoration:none;margin-bottom:24px;transition:color .2s;}
@@ -429,5 +430,7 @@ function toggleUserMenu(){document.getElementById('userDropdown')?.classList.tog
 document.addEventListener('click',e=>{const m=document.getElementById('userMenu');if(m&&!m.contains(e.target))document.getElementById('userDropdown')?.classList.remove('open');});
 function markAllRead(){fetch('mark_read.php');return true;}
 </script>
+
+<?php include "footer.php"; ?>
 </body>
 </html>
