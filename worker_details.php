@@ -48,7 +48,16 @@ $experience = htmlspecialchars($row['experience']);
 $location   = htmlspecialchars($row['location']);
 $phone      = htmlspecialchars($row['phone']);
 $photo      = $row['photo'] ?? '';
-$rating     = (float)($row['rating'] ?? 0);
+$rating       = (float)($row['rating'] ?? 0);
+$rating_count = (int)($row['rating_count'] ?? 0);
+
+// Fetch review count directly from ratings table (source of truth)
+$rc = $conn->prepare("SELECT COUNT(*) FROM ratings WHERE worker_id=?");
+$rc->bind_param("i", $id);
+$rc->execute();
+$rc->bind_result($review_count);
+$rc->fetch();
+$rc->close();
 $avail      = $row['availability'] ?? '';
 $hourly     = (float)($row['hourly_rate'] ?? 0);
 $initials   = strtoupper(implode('', array_map(fn($w) => $w[0], array_slice(explode(' ', $row['name']), 0, 2))));
@@ -243,6 +252,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                     <?php if($half) echo '<span class="star half">★</span>'; ?>
                     <?php for($i=0;$i<$empty;$i++) echo '<span class="star empty">★</span>'; ?>
                     <span style="font-size:13px;color:var(--muted);margin-left:5px;"><?= $rating>0?number_format($rating,1):'—' ?></span>
+                </div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:5px;display:flex;align-items:center;gap:4px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <?= $review_count ?> <?= $review_count === 1 ? 'review' : 'reviews' ?>
                 </div>
             </div>
             <?php if ($hourly > 0): ?>

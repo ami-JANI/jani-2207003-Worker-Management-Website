@@ -1,6 +1,29 @@
 <?php
 include "db_connect.php";
 include "auth.php";
+
+// Auto-create tables if missing
+$conn->query("CREATE TABLE IF NOT EXISTS bookings (
+    id        INT AUTO_INCREMENT PRIMARY KEY,
+    user_id   INT NOT NULL,
+    worker_id INT NOT NULL,
+    status    ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
+    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+$conn->query("CREATE TABLE IF NOT EXISTS ratings (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL,
+    user_id    INT NOT NULL,
+    worker_id  INT NOT NULL,
+    stars      TINYINT NOT NULL,
+    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_booking (booking_id)
+)");
+// Ensure no stale unique constraint on user+worker combo
+$conn->query("ALTER TABLE ratings DROP INDEX IF EXISTS unique_user_worker");
+// Ensure booking_id unique index exists
+$conn->query("ALTER IGNORE TABLE ratings ADD UNIQUE INDEX IF NOT EXISTS unique_booking (booking_id)");
+
 requireLogin();
 
 $uid  = $_SESSION['uid'];
@@ -11,7 +34,8 @@ if (isUser()) {
     $stmt = $conn->prepare("
         SELECT b.*, w.name AS worker_name, w.profession, w.photo AS worker_photo,
                w.hourly_rate, w.location AS worker_location,
-               (SELECT id FROM ratings WHERE booking_id=b.id) AS rating_id
+               (SELECT id    FROM ratings WHERE booking_id=b.id) AS rating_id,
+               (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN workers w ON w.id = b.worker_id
         WHERE b.user_id = ?
@@ -20,7 +44,9 @@ if (isUser()) {
     $stmt->bind_param("i", $uid);
 } elseif (isWorker()) {
     $stmt = $conn->prepare("
-        SELECT b.*, u.name AS user_name, u.phone AS user_phone, u.location AS user_location
+        SELECT b.*, u.name AS user_name, u.phone AS user_phone, u.location AS user_location,
+               (SELECT id    FROM ratings WHERE booking_id=b.id) AS rating_id,
+               (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN users u ON u.id = b.user_id
         WHERE b.worker_id = ?
@@ -32,7 +58,9 @@ if (isUser()) {
     $stmt = $conn->prepare("
         SELECT b.*,
                w.name AS worker_name, w.profession, w.photo AS worker_photo,
-               u.name AS user_name, u.phone AS user_phone
+               u.name AS user_name, u.phone AS user_phone,
+               (SELECT id    FROM ratings WHERE booking_id=b.id) AS rating_id,
+               (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN workers w ON w.id = b.worker_id
         JOIN users   u ON u.id = b.user_id
@@ -146,6 +174,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .empty a{color:var(--accent);text-decoration:none;font-weight:500;}
 
 .mb-section{margin-bottom:36px;}
+
+/* Rating display in previous bookings */
+.rating-section{margin-top:4px;}
+
+.rating-display-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:10px;}
+.rating-given-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;}
+.given-stars{display:flex;align-items:center;gap:3px;}
+.gstar{font-size:20px;line-height:1;}
+.gfilled{color:var(--warn);}
+.gempty{color:var(--border);}
+.given-val{font-size:13px;font-weight:700;color:var(--warn);margin-left:6px;}
+
+.rate-box{padding:14px 16px;background:rgba(79,142,247,.05);border:1px solid rgba(79,142,247,.15);border-radius:10px;}
+.rate-box-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;}
 
 @media(max-width:600px){.bcard-top{flex-wrap:wrap;}.bcard-actions{flex-direction:column;}.btn{justify-content:center;}}
 </style>
@@ -370,23 +412,43 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                 </span>
             </div>
 
-            <!-- Rate button for completed jobs (user only, not yet rated) -->
-            <?php if ($status === 'completed' && isUser() && !$alreadyRated): ?>
-            <div style="background:rgba(79,142,247,.05);border:1px solid rgba(79,142,247,.15);border-radius:10px;padding:14px 16px;margin-bottom:0;">
-                <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;">Rate this worker</div>
-                <form method="POST" action="rate_worker.php" class="rate-form">
-                    <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
-                    <div class="star-pick">
-                        <?php for($i=5;$i>=1;$i--): ?>
-                        <input type="radio" name="stars" id="s<?= $b['id'].'_'.$i ?>" value="<?= $i ?>" required>
-                        <label for="s<?= $b['id'].'_'.$i ?>">★</label>
-                        <?php endfor; ?>
+            <!-- Rating section for completed bookings -->
+            <?php if ($status === 'completed'): ?>
+            <div class="rating-section">
+                <?php if ($alreadyRated): ?>
+                    <div class="rating-display-row">
+                        <span class="rating-given-label">
+                            <?= isWorker() ? 'Rating received' : 'Your rating' ?>
+                        </span>
+                        <div class="given-stars">
+                            <?php
+                            $gs = (int)($b['rating_stars'] ?? 0);
+                            for ($si=1; $si<=5; $si++) {
+                                $cls = $si <= $gs ? 'gfilled' : 'gempty';
+                                echo "<span class='gstar $cls'>★</span>";
+                            }
+                            ?>
+                            <span class="given-val"><?= $gs ?>/5</span>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="padding:8px 18px;font-size:13px;">Submit Rating</button>
-                </form>
+                <?php elseif (isUser()): ?>
+                    <div class="rate-box">
+                        <div class="rate-box-title">Rate this worker</div>
+                        <form method="POST" action="rate_worker.php" class="rate-form">
+                            <input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
+                            <div class="star-pick">
+                                <?php for($i=5;$i>=1;$i--): ?>
+                                <input type="radio" name="stars" id="s<?= $b['id'].'_'.$i ?>" value="<?= $i ?>" required>
+                                <label for="s<?= $b['id'].'_'.$i ?>">★</label>
+                                <?php endfor; ?>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="padding:8px 18px;font-size:13px;">Submit</button>
+                        </form>
+                    </div>
+                <?php else: ?>
+                    <div style="font-size:12.5px;color:var(--muted);font-style:italic;">No rating submitted yet</div>
+                <?php endif; ?>
             </div>
-            <?php elseif ($status === 'completed' && isUser() && $alreadyRated): ?>
-                <div style="font-size:13px;color:var(--success);font-weight:500;">✓ You rated this worker</div>
             <?php endif; ?>
         </div>
         <?php endforeach; ?>
