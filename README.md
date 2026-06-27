@@ -21,7 +21,9 @@ Built with **PHP** and **Oracle Database (PL/SQL)**. The PHP data layer uses the
 
 ### Other
 - In-app notification system with an unread badge and dropdown panel.
-- Worker profile edits are queued for admin approval (admins see a before/after diff).
+- Worker profile edits are queued for admin approval (admins see a before/after diff, including skills).
+- Workers can list multiple skills via a chip-style input at sign-up and when editing their profile.
+- Logged-in users can save their own location and jump straight to workers near them.
 - Image uploads for worker profile photos.
 - Password-strength validation on sign-up.
 - Responsive dark-themed UI (Syne + DM Sans).
@@ -81,6 +83,8 @@ Built with **PHP** and **Oracle Database (PL/SQL)**. The PHP data layer uses the
 | `bookings.php` | Role-aware bookings list |
 | `rate_worker.php` | Submit a rating after completion |
 | `add_worker.php` / `edit_worker.php` | Worker create/edit (admin instant, worker pending approval) |
+| `skills.js` | Shared multi-skill chip input (sign-up, add/edit worker) |
+| `update_location.php` | Saves a logged-in user's location for the "Browse Near Me" filter |
 | `admin.php` | Admin dashboard |
 | `navbar.php` / `footer.php` (+ `.css`) | Shared layout |
 | `faq.php` / `privacy.php` / `terms.php` | Static pages |
