@@ -15,17 +15,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "Please fill in all fields.";
     } else {
         $table = match($role) { 'admin' => 'admins', 'worker' => 'workers', default => 'users' };
-        $stmt  = $conn->prepare("SELECT id, name, password" . ($role==='worker' ? ", approved" : "") . " FROM $table WHERE email=?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $row = $stmt->get_result()->fetch_assoc();
+        $cols  = "id, name, password" . ($role==='worker' ? ", approved" : "");
+        $row   = db_one($conn, "SELECT $cols FROM $table WHERE email = :email", [':email' => $email]);
 
         if (!$row || !password_verify($password, $row['password'])) {
             $error = "Invalid email or password.";
         } elseif ($role === 'worker' && !$row['approved']) {
             $error = "Your worker account is pending admin approval.";
         } else {
-            $_SESSION['uid']  = $row['id'];
+            $_SESSION['uid']  = (int)$row['id'];
             $_SESSION['name'] = $row['name'];
             $_SESSION['role'] = $role;
             header("Location: index.php");

@@ -29,17 +29,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($password, PASSWORD_BCRYPT);
 
         if ($type === 'user') {
-            $stmt = $conn->prepare("INSERT INTO users (name, phone, email, location, password) VALUES (?,?,?,?,?)");
-            $stmt->bind_param("sssss", $name, $phone, $email, $location, $hash);
-            if ($stmt->execute()) {
+            $ins = oci_parse($conn, "INSERT INTO users (name, phone, email, location, password)
+                                     VALUES (:name, :phone, :email, :loc, :pw)");
+            oci_bind_by_name($ins, ':name',  $name);
+            oci_bind_by_name($ins, ':phone', $phone);
+            oci_bind_by_name($ins, ':email', $email);
+            oci_bind_by_name($ins, ':loc',   $location);
+            oci_bind_by_name($ins, ':pw',    $hash);
+            if (@oci_execute($ins, OCI_COMMIT_ON_SUCCESS)) {
                 // Notify admins
-                $adminRes = $conn->query("SELECT id FROM admins");
-                while ($a = $adminRes->fetch_assoc()) {
-                    sendNotification($conn, 'admin', $a['id'], "New user registered: $name", "");
+                foreach (db_all($conn, "SELECT id FROM admins") as $a) {
+                    sendNotification($conn, 'admin', (int)$a['id'], "New user registered: $name", "");
                 }
                 $success = "Account created! You can now sign in.";
             } else {
-                $error = str_contains($conn->error, 'Duplicate') ? "Email or phone already registered." : "Registration failed.";
+                $error = db_is_duplicate($ins) ? "Email or phone already registered." : "Registration failed.";
             }
         } else {
             // Worker
@@ -61,30 +65,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            $stmt = $conn->prepare("INSERT INTO workers (name, profession, skill, experience, location, phone, email, photo, hourly_rate, availability, password, approved) VALUES (?,?,?,?,?,?,?,?,?,?,?,0)");
-            $stmt->bind_param(
-    "sssisssssss",
-    $name,
-    $profession,
-    $skill,
-    $experience,
-    $location,
-    $phone,
-    $email,
-    $photo,
-    $hourly_rate,
-    $availability,
-    $hash
-);
-            if ($stmt->execute()) {
+            $ins = oci_parse($conn, "INSERT INTO workers
+                (name, profession, skill, experience, location, phone, email, photo, hourly_rate, availability, password, approved)
+                VALUES (:name, :prof, :skill, :exp, :loc, :phone, :email, :photo, :rate, :avail, :pw, 0)");
+            oci_bind_by_name($ins, ':name',  $name);
+            oci_bind_by_name($ins, ':prof',  $profession);
+            oci_bind_by_name($ins, ':skill', $skill);
+            oci_bind_by_name($ins, ':exp',   $experience);
+            oci_bind_by_name($ins, ':loc',   $location);
+            oci_bind_by_name($ins, ':phone', $phone);
+            oci_bind_by_name($ins, ':email', $email);
+            oci_bind_by_name($ins, ':photo', $photo);
+            oci_bind_by_name($ins, ':rate',  $hourly_rate);
+            oci_bind_by_name($ins, ':avail', $availability);
+            oci_bind_by_name($ins, ':pw',    $hash);
+            if (@oci_execute($ins, OCI_COMMIT_ON_SUCCESS)) {
                 // Notify all admins
-                $adminRes = $conn->query("SELECT id FROM admins");
-                while ($a = $adminRes->fetch_assoc()) {
-                    sendNotification($conn, 'admin', $a['id'], "New worker application: $name ($profession) — awaiting approval.", "admin.php");
+                foreach (db_all($conn, "SELECT id FROM admins") as $a) {
+                    sendNotification($conn, 'admin', (int)$a['id'], "New worker application: $name ($profession) — awaiting approval.", "admin.php");
                 }
                 $success = "Application submitted! Please wait for admin approval before signing in.";
             } else {
-                $error = str_contains($conn->error, 'Duplicate') ? "Email or phone already registered." : "Registration failed.";
+                $error = db_is_duplicate($ins) ? "Email or phone already registered." : "Registration failed.";
             }
         }
     }
