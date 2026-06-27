@@ -16,8 +16,8 @@ $uid = (int)$_SESSION['uid'];
 $b = db_one($conn,
     "SELECT b.*, w.name AS worker_name, w.rating, w.rating_count
      FROM bookings b JOIN workers w ON w.id = b.worker_id
-     WHERE b.id = :bid AND b.user_id = :uid AND b.status = 'completed'",
-    [':bid' => $bid, ':uid' => $uid]);
+     WHERE b.id = :bid AND b.user_id = :p_uid AND b.status = 'completed'",
+    [':bid' => $bid, ':p_uid' => $uid]);
 if (!$b) { header("Location: bookings.php"); exit; }
 $worker_id = (int)$b['worker_id'];
 
@@ -29,8 +29,8 @@ if (db_one($conn, "SELECT id FROM ratings WHERE booking_id = :bid", [':bid' => $
 // Insert rating
 db_exec($conn,
     "INSERT INTO ratings (booking_id, user_id, worker_id, stars)
-     VALUES (:bid, :uid, :wid, :stars)",
-    [':bid' => $bid, ':uid' => $uid, ':wid' => $worker_id, ':stars' => $stars]);
+     VALUES (:bid, :p_uid, :wid, :stars)",
+    [':bid' => $bid, ':p_uid' => $uid, ':wid' => $worker_id, ':stars' => $stars]);
 
 // Recalculate worker's average rating
 $new_count  = (int)$b['rating_count'] + 1;

@@ -18,9 +18,9 @@ if (isUser()) {
                (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN workers w ON w.id = b.worker_id
-        WHERE b.user_id = :uid
+        WHERE b.user_id = :p_uid
         ORDER BY b.booked_at DESC";
-    $binds = [':uid' => $uid];
+    $binds = [':p_uid' => $uid];
 } elseif (isWorker()) {
     $sql = "
         SELECT b.*, u.name AS user_name, u.phone AS user_phone, u.location AS user_location,
@@ -28,9 +28,9 @@ if (isUser()) {
                (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN users u ON u.id = b.user_id
-        WHERE b.worker_id = :uid
+        WHERE b.worker_id = :p_uid
         ORDER BY b.booked_at DESC";
-    $binds = [':uid' => $uid];
+    $binds = [':p_uid' => $uid];
 } else {
     // Admin: see all
     $sql = "

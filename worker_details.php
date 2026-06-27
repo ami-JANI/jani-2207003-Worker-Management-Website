@@ -51,9 +51,9 @@ if (isUser() && $row['availability'] === 'available' && $row['approved']) {
     $canBook = true;
     // Check for existing active booking
     $existing = db_one($conn,
-        "SELECT id FROM bookings WHERE user_id = :uid AND worker_id = :wid
+        "SELECT id FROM bookings WHERE user_id = :p_uid AND worker_id = :wid
          AND status IN ('pending','confirmed','awaiting_user')",
-        [':uid' => (int)$_SESSION['uid'], ':wid' => $id]);
+        [':p_uid' => (int)$_SESSION['uid'], ':wid' => $id]);
     if ($existing) {
         $canBook = false;
         $alreadyBooked = true;

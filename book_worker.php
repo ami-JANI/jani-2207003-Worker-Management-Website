@@ -25,9 +25,9 @@ $user_id = (int)$_SESSION['uid'];
 
 // Check if user already has an active (non-cancelled/completed) booking with this worker
 $existing = db_one($conn,
-    "SELECT id FROM bookings WHERE user_id = :uid AND worker_id = :wid
+    "SELECT id FROM bookings WHERE user_id = :p_uid AND worker_id = :wid
      AND status IN ('pending','confirmed','awaiting_user')",
-    [':uid' => $user_id, ':wid' => $worker_id]);
+    [':p_uid' => $user_id, ':wid' => $worker_id]);
 if ($existing) {
     header("Location: worker_details.php?id=$worker_id&err=already");
     exit;
@@ -36,8 +36,8 @@ if ($existing) {
 // Create booking
 $booking_id = db_insert_id($conn,
     "INSERT INTO bookings (user_id, worker_id, status)
-     VALUES (:uid, :wid, 'pending') RETURNING id INTO :new_id",
-    [':uid' => $user_id, ':wid' => $worker_id]);
+     VALUES (:p_uid, :wid, 'pending') RETURNING id INTO :new_id",
+    [':p_uid' => $user_id, ':wid' => $worker_id]);
 
 // Notify worker
 $user_name = $_SESSION['name'];

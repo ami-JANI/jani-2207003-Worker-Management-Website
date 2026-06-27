@@ -47,8 +47,8 @@ function getUnreadCount($conn): int {
     $uid  = (int)$_SESSION['uid'];
     return (int) db_scalar($conn,
         "SELECT COUNT(*) FROM notifications
-         WHERE target_role = :role AND (target_id = :uid OR target_id = 0) AND is_read = 0",
-        [':role' => $role, ':uid' => $uid], 0);
+         WHERE target_role = :role AND (target_id = :p_uid OR target_id = 0) AND is_read = 0",
+        [':role' => $role, ':p_uid' => $uid], 0);
 }
 
 function getNotifications($conn, int $limit = 30): array {
@@ -58,10 +58,10 @@ function getNotifications($conn, int $limit = 30): array {
     return db_all($conn,
         "SELECT * FROM (
             SELECT * FROM notifications
-            WHERE target_role = :role AND (target_id = :uid OR target_id = 0)
+            WHERE target_role = :role AND (target_id = :p_uid OR target_id = 0)
             ORDER BY created_at DESC
          ) WHERE ROWNUM <= :lim",
-        [':role' => $role, ':uid' => $uid, ':lim' => $limit]);
+        [':role' => $role, ':p_uid' => $uid, ':lim' => $limit]);
 }
 
 function markAllRead($conn) {
@@ -70,6 +70,6 @@ function markAllRead($conn) {
     $uid  = (int)$_SESSION['uid'];
     db_exec($conn,
         "UPDATE notifications SET is_read = 1
-         WHERE target_role = :role AND (target_id = :uid OR target_id = 0)",
-        [':role' => $role, ':uid' => $uid]);
+         WHERE target_role = :role AND (target_id = :p_uid OR target_id = 0)",
+        [':role' => $role, ':p_uid' => $uid]);
 }
