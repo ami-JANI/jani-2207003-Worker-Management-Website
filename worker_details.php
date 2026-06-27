@@ -25,7 +25,7 @@ if (isset($_GET['delete'])) {
 
 $name       = htmlspecialchars($row['name']);
 $profession = htmlspecialchars($row['profession']);
-$skill      = htmlspecialchars($row['skill'] ?? '');
+$skillsList = array_filter(array_map('trim', explode(',', $row['skill'] ?? '')));
 $experience = htmlspecialchars($row['experience']);
 $location   = htmlspecialchars($row['location']);
 $phone      = htmlspecialchars($row['phone']);
@@ -269,10 +269,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                 <span class="value"><?= $profession ?></span>
             </div>
             <div class="info-item">
-                <span class="label">Primary Skill</span>
-                <span class="value">
-                    <?php if ($skill): ?>
-                        <span class="skill-pill">⚡ <?= $skill ?></span>
+                <span class="label">Skills</span>
+                <span class="value" style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <?php if ($skillsList): ?>
+                        <?php foreach ($skillsList as $sk): ?>
+                            <span class="skill-pill">⚡ <?= htmlspecialchars($sk) ?></span>
+                        <?php endforeach; ?>
                     <?php else: ?>
                         <span style="color:var(--muted)">—</span>
                     <?php endif; ?>
