@@ -9,15 +9,10 @@ if (!isLoggedIn()) { header("Location: signin.php"); exit; }
 if (empty($_GET['id'])) { header("Location: index.php"); exit; }
 $id = (int)$_GET['id'];
 
-// Ensure pending columns exist (auto-creates if missing)
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS pending_edit TEXT DEFAULT NULL");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS pending_photo VARCHAR(255) DEFAULT NULL");
+// Schema is managed by oracle_schema.sql — no runtime column creation.
 
 // Fetch worker
-$stmt = $conn->prepare("SELECT * FROM workers WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$row = $stmt->get_result()->fetch_assoc();
+$row = db_one($conn, "SELECT * FROM workers WHERE id = :id", [':id' => $id]);
 if (!$row) { header("Location: index.php"); exit; }
 
 // Permission check:
@@ -25,7 +20,7 @@ if (!$row) { header("Location: index.php"); exit; }
 // - Worker can only edit their own profile
 // - Users cannot edit at all
 if (isUser()) { header("Location: index.php"); exit; }
-if (isWorker() && $_SESSION['uid'] !== $row['id']) { header("Location: index.php"); exit; }
+if (isWorker() && $_SESSION['uid'] !== (int)$row['id']) { header("Location: index.php"); exit; }
 
 $isAdmin  = isAdmin();
 $error    = '';
@@ -71,9 +66,15 @@ if (isset($_POST['update'])) {
         if ($isAdmin) {
             // Admin: apply changes immediately, clear any pending edit
             $oldPhoto = $row['photo'];
-            $stmt2 = $conn->prepare("UPDATE workers SET name=?, profession=?, skill=?, experience=?, location=?, phone=?, photo=?, rating=?, availability=?, pending_edit=NULL, pending_photo=NULL WHERE id=?");
-            $stmt2->bind_param("sssisssdsi", $name, $profession, $skill, $experience, $location, $phone, $photo, $rating, $availability, $id);
-            if ($stmt2->execute()) {
+            $ok = db_exec($conn,
+                "UPDATE workers SET name=:name, profession=:prof, skill=:skill, experience=:exp,
+                    location=:loc, phone=:phone, photo=:photo, rating=:rating, availability=:avail,
+                    pending_edit=NULL, pending_photo=NULL
+                 WHERE id=:id",
+                [':name'=>$name, ':prof'=>$profession, ':skill'=>$skill, ':exp'=>$experience,
+                 ':loc'=>$location, ':phone'=>$phone, ':photo'=>$photo, ':rating'=>$rating,
+                 ':avail'=>$availability, ':id'=>$id]);
+            if ($ok) {
                 // Delete old photo only if replaced
                 if ($oldPhoto && $oldPhoto !== $photo && file_exists("uploads/$oldPhoto")) {
                     unlink("uploads/$oldPhoto");
@@ -83,7 +84,8 @@ if (isset($_POST['update'])) {
                 header("Location: worker_details.php?id=$id&updated=1");
                 exit;
             } else {
-                $error = "Database error: " . $conn->error;
+                $e = oci_error($conn);
+                $error = "Database error: " . ($e['message'] ?? 'update failed');
             }
         } else {
             // Worker: store as pending edit, set approved=0 until admin reviews
@@ -98,18 +100,19 @@ if (isset($_POST['update'])) {
             ]);
             $pendingPhoto = ($photo !== $row['photo']) ? $photo : null;
 
-            $stmt2 = $conn->prepare("UPDATE workers SET pending_edit=?, pending_photo=? WHERE id=?");
-            $stmt2->bind_param("ssi", $pendingData, $pendingPhoto, $id);
-            if ($stmt2->execute()) {
+            $ok = db_exec($conn,
+                "UPDATE workers SET pending_edit=:pe, pending_photo=:pp WHERE id=:id",
+                [':pe'=>$pendingData, ':pp'=>$pendingPhoto, ':id'=>$id]);
+            if ($ok) {
                 // Notify all admins
-                $admins = $conn->query("SELECT id FROM admins");
-                while ($a = $admins->fetch_assoc()) {
-                    sendNotification($conn, 'admin', $a['id'], "Worker \"{$row['name']}\" submitted a profile edit — awaiting your approval.", "admin.php");
+                foreach (db_all($conn, "SELECT id FROM admins") as $a) {
+                    sendNotification($conn, 'admin', (int)$a['id'], "Worker \"{$row['name']}\" submitted a profile edit — awaiting your approval.", "admin.php");
                 }
                 header("Location: worker_details.php?id=$id&pending=1");
                 exit;
             } else {
-                $error = "Database error: " . $conn->error;
+                $e = oci_error($conn);
+                $error = "Database error: " . ($e['message'] ?? 'update failed');
             }
         }
     }

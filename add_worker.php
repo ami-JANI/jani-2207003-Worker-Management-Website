@@ -33,14 +33,25 @@ if (isset($_POST['submit'])) {
     }
 
     if (!$error) {
-        $stmt = $conn->prepare("INSERT INTO workers (name, profession, skill, experience, location, phone, photo, rating, availability)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sssisssds", $name, $profession, $skill, $experience, $location, $phone, $photo, $rating, $availability);
-        if ($stmt->execute()) {
+        // Admin-added workers are approved immediately and have no login password.
+        $ins = oci_parse($conn, "INSERT INTO workers
+            (name, profession, skill, experience, location, phone, photo, rating, availability, approved)
+            VALUES (:name, :prof, :skill, :exp, :loc, :phone, :photo, :rating, :avail, 1)");
+        oci_bind_by_name($ins, ':name',   $name);
+        oci_bind_by_name($ins, ':prof',   $profession);
+        oci_bind_by_name($ins, ':skill',  $skill);
+        oci_bind_by_name($ins, ':exp',    $experience);
+        oci_bind_by_name($ins, ':loc',    $location);
+        oci_bind_by_name($ins, ':phone',  $phone);
+        oci_bind_by_name($ins, ':photo',  $photo);
+        oci_bind_by_name($ins, ':rating', $rating);
+        oci_bind_by_name($ins, ':avail',  $availability);
+        if (@oci_execute($ins, OCI_COMMIT_ON_SUCCESS)) {
             header("Location: workers.php?added=1");
             exit;
         } else {
-            $error = "Database error: " . $conn->error;
+            $e = oci_error($ins);
+            $error = "Database error: " . ($e['message'] ?? 'insert failed');
         }
     }
 }
