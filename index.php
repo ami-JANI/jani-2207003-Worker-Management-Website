@@ -4,6 +4,14 @@ include "auth.php";
 $unread = isLoggedIn() ? getUnreadCount($conn) : 0;
 $su     = sessionUser();
 
+// My Location — only meaningful for logged-in users hiring workers
+$myLocation = '';
+if (isUser()) {
+    $myLocation = (string) db_scalar($conn,
+        "SELECT location FROM users WHERE id = :p_uid",
+        [':p_uid' => (int)$_SESSION['uid']], '');
+}
+
 // --- Build query with filters ---
 $where = ["approved = 1"]; $binds = [];
 if (!empty($_GET['profession'])) { $where[]="profession = :prof"; $binds[':prof']=$_GET['profession']; }
@@ -62,6 +70,16 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .btn-apply:hover{opacity:.85;}
 .btn-reset{width:100%;padding:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:13.5px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:color .2s,border-color .2s;}
 .btn-reset:hover{color:var(--text);border-color:var(--muted);}
+
+/* ── MY LOCATION ── */
+.my-location-current{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+.btn-mylocation{display:block;text-align:center;padding:8px;border-radius:8px;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.25);color:var(--accent);font-size:12.5px;font-weight:600;text-decoration:none;transition:background .2s;}
+.btn-mylocation:hover{background:rgba(79,142,247,.18);}
+.my-location-form{display:flex;gap:6px;}
+.my-location-form input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
+.my-location-form input:focus{border-color:var(--accent);}
+.btn-mylocation-save{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .2s,border-color .2s;}
+.btn-mylocation-save:hover{color:var(--text);border-color:var(--accent);}
 
 /* ── MAIN ── */
 .main{margin-left:var(--sidebar-w);flex:1;padding:28px 28px 40px;}
@@ -140,6 +158,20 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                 ?>
             </select>
         </div>
+
+        <?php if (isUser()): ?>
+        <div class="filter-group my-location-box">
+            <label>My Location</label>
+            <?php if ($myLocation !== ''): ?>
+                <div class="my-location-current">📍 <?= htmlspecialchars($myLocation) ?></div>
+                <a class="btn-mylocation" href="index.php?location=<?= rawurlencode($myLocation) ?>">Browse Near Me</a>
+            <?php endif; ?>
+            <form method="POST" action="update_location.php" class="my-location-form">
+                <input type="text" name="location" placeholder="<?= $myLocation !== '' ? 'Update location' : 'Set your location' ?>" value="<?= htmlspecialchars($myLocation) ?>">
+                <button type="submit" class="btn-mylocation-save"><?= $myLocation !== '' ? 'Update' : 'Save' ?></button>
+            </form>
+        </div>
+        <?php endif; ?>
 
         <div class="filter-group">
             <label>Min Experience (yrs)</label>
