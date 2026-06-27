@@ -2,35 +2,12 @@
 include "db_connect.php";
 include "auth.php";
 
-// Auto-create tables if missing
-$conn->query("CREATE TABLE IF NOT EXISTS bookings (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    user_id   INT NOT NULL,
-    worker_id INT NOT NULL,
-    status    ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
-    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS ratings (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL,
-    user_id    INT NOT NULL,
-    worker_id  INT NOT NULL,
-    stars      TINYINT NOT NULL,
-    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_booking (booking_id)
-)");
-// Ensure no stale unique constraint on user+worker combo
-$conn->query("ALTER TABLE ratings DROP INDEX IF EXISTS unique_user_worker");
-// Ensure booking_id unique index exists
-$conn->query("ALTER IGNORE TABLE ratings ADD UNIQUE INDEX IF NOT EXISTS unique_booking (booking_id)");
+// Schema is managed by oracle_schema.sql — no runtime table creation.
 
 if (empty($_GET['id'])) { header("Location: index.php"); exit; }
 $id = (int)$_GET['id'];
 
-$stmt = $conn->prepare("SELECT * FROM workers WHERE id = ?");
-$stmt->bind_param("i", $id);
-$stmt->execute();
-$row = $stmt->get_result()->fetch_assoc();
+$row = db_one($conn, "SELECT * FROM workers WHERE id = :id", [':id' => $id]);
 if (!$row) { header("Location: index.php"); exit; }
 
 // Handle delete — only admin or the worker themselves
@@ -41,7 +18,7 @@ if (isset($_GET['delete'])) {
     if (!empty($row['photo']) && file_exists("uploads/" . $row['photo'])) {
         unlink("uploads/" . $row['photo']);
     }
-    $conn->query("DELETE FROM workers WHERE id=$id");
+    db_exec($conn, "DELETE FROM workers WHERE id = :id", [':id' => $id]);
     header("Location: index.php");
     exit;
 }
@@ -57,12 +34,7 @@ $rating       = (float)($row['rating'] ?? 0);
 $rating_count = (int)($row['rating_count'] ?? 0);
 
 // Fetch review count directly from ratings table (source of truth)
-$rc = $conn->prepare("SELECT COUNT(*) FROM ratings WHERE worker_id=?");
-$rc->bind_param("i", $id);
-$rc->execute();
-$rc->bind_result($review_count);
-$rc->fetch();
-$rc->close();
+$review_count = (int) db_scalar($conn, "SELECT COUNT(*) FROM ratings WHERE worker_id = :id", [':id' => $id], 0);
 $avail      = $row['availability'] ?? '';
 $hourly     = (float)($row['hourly_rate'] ?? 0);
 $initials   = strtoupper(implode('', array_map(fn($w) => $w[0], array_slice(explode(' ', $row['name']), 0, 2))));
@@ -78,10 +50,11 @@ $alreadyBooked = false;
 if (isUser() && $row['availability'] === 'available' && $row['approved']) {
     $canBook = true;
     // Check for existing active booking
-    $bstmt = $conn->prepare("SELECT id FROM bookings WHERE user_id=? AND worker_id=? AND status IN ('pending','confirmed','awaiting_user')");
-    $bstmt->bind_param("ii", $_SESSION['uid'], $id);
-    $bstmt->execute();
-    if ($bstmt->get_result()->num_rows > 0) {
+    $existing = db_one($conn,
+        "SELECT id FROM bookings WHERE user_id = :uid AND worker_id = :wid
+         AND status IN ('pending','confirmed','awaiting_user')",
+        [':uid' => (int)$_SESSION['uid'], ':wid' => $id]);
+    if ($existing) {
         $canBook = false;
         $alreadyBooked = true;
     }

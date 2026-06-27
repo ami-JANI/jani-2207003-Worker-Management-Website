@@ -5,21 +5,19 @@ $unread = isLoggedIn() ? getUnreadCount($conn) : 0;
 $su     = sessionUser();
 
 // --- Build query with filters ---
-$where = []; $params = []; $types = '';
-if (!empty($_GET['profession'])) { $where[]="profession=?"; $params[]=$_GET['profession']; $types.='s'; }
-if (!empty($_GET['location']))   { $where[]="location=?";   $params[]=$_GET['location'];   $types.='s'; }
-if (isset($_GET['min_exp']) && $_GET['min_exp']!=='')    { $where[]="experience>=?"; $params[]=(int)$_GET['min_exp'];    $types.='i'; }
-if (isset($_GET['min_rating']) && $_GET['min_rating']!=='') { $where[]="rating>=?";   $params[]=(float)$_GET['min_rating']; $types.='d'; }
-if (!empty($_GET['availability'])) { $where[]="availability=?"; $params[]=$_GET['availability']; $types.='s'; }
-$where[] = "approved=1";
+$where = ["approved = 1"]; $binds = [];
+if (!empty($_GET['profession'])) { $where[]="profession = :prof"; $binds[':prof']=$_GET['profession']; }
+if (!empty($_GET['location']))   { $where[]="location = :loc";    $binds[':loc']=$_GET['location']; }
+if (isset($_GET['min_exp']) && $_GET['min_exp']!=='')    { $where[]="experience >= :minexp"; $binds[':minexp']=(int)$_GET['min_exp']; }
+if (isset($_GET['min_rating']) && $_GET['min_rating']!=='') { $where[]="rating >= :minrat";   $binds[':minrat']=(float)$_GET['min_rating']; }
+if (!empty($_GET['availability'])) { $where[]="availability = :avail"; $binds[':avail']=$_GET['availability']; }
 
 $sort_map = ['name'=>'name ASC','experience'=>'experience DESC','rating'=>'rating DESC','newest'=>'id DESC'];
 $sort_col = $sort_map[$_GET['sort']??'']??'name ASC';
-$sql = "SELECT * FROM workers" . ($where?" WHERE ".implode(" AND ",$where):'') . " ORDER BY $sort_col";
+$sql = "SELECT * FROM workers WHERE " . implode(" AND ", $where) . " ORDER BY $sort_col";
 
-if ($params) { $stmt=$conn->prepare($sql); $stmt->bind_param($types,...$params); $stmt->execute(); $result=$stmt->get_result(); }
-else $result = mysqli_query($conn,$sql);
-$count = mysqli_num_rows($result);
+$workers = db_all($conn, $sql, $binds);
+$count   = count($workers);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,14 +87,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
             <label>Profession</label>
             <select id="f-profession">
                 <option value="">All Professions</option>
-                <?php $profs=mysqli_query($conn,"SELECT DISTINCT profession FROM workers WHERE approved=1 ORDER BY profession"); while($p=mysqli_fetch_assoc($profs)){ $sel=(($_GET['profession']??'')===$p['profession'])?'selected':''; echo "<option value='{$p['profession']}' $sel>{$p['profession']}</option>"; } ?>
+                <?php foreach(db_all($conn,"SELECT DISTINCT profession FROM workers WHERE approved=1 ORDER BY profession") as $p){ $sel=(($_GET['profession']??'')===$p['profession'])?'selected':''; echo "<option value='{$p['profession']}' $sel>{$p['profession']}</option>"; } ?>
             </select>
         </div>
         <div class="filter-group">
             <label>Location</label>
             <select id="f-location">
                 <option value="">All Locations</option>
-                <?php $locs=mysqli_query($conn,"SELECT DISTINCT location FROM workers WHERE approved=1 ORDER BY location"); while($l=mysqli_fetch_assoc($locs)){ $sel=(($_GET['location']??'')===$l['location'])?'selected':''; echo "<option value='{$l['location']}' $sel>{$l['location']}</option>"; } ?>
+                <?php foreach(db_all($conn,"SELECT DISTINCT location FROM workers WHERE approved=1 ORDER BY location") as $l){ $sel=(($_GET['location']??'')===$l['location'])?'selected':''; echo "<option value='{$l['location']}' $sel>{$l['location']}</option>"; } ?>
             </select>
         </div>
         <div class="filter-group"><label>Min Experience (yrs)</label><input type="number" id="f-exp" min="0" placeholder="Any" value="<?= htmlspecialchars($_GET['min_exp']??'') ?>"></div>
@@ -130,7 +128,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
         </div>
         <div class="worker-grid">
         <?php if($count===0): echo '<div class="empty-state"><p>No workers match your filters.</p></div>'; endif; ?>
-        <?php while($row=mysqli_fetch_assoc($result)):
+        <?php foreach($workers as $row):
             $name=$row['name']; $prof=htmlspecialchars($row['profession']); $exp=htmlspecialchars($row['experience']);
             $avail=$row['availability']??''; $photo=!empty($row['photo'])?htmlspecialchars($row['photo']):'';
             $initials=strtoupper(implode('',array_map(fn($w)=>$w[0],array_slice(explode(' ',$row['name']),0,2))));
@@ -150,7 +148,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                 </div>
             </div>
         </a>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
         </div>
     </main>
 </div>
