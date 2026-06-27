@@ -33,7 +33,6 @@ if (isset($_POST['update'])) {
     $experience   = (int)$_POST['experience'];
     $location     = trim($_POST['location']);
     $phone        = trim($_POST['phone']);
-    $availability = $_POST['availability'] ?? $row['availability'];
     $photo        = $row['photo'];
 
     // Rating — only admin can change rating
@@ -68,12 +67,12 @@ if (isset($_POST['update'])) {
             $oldPhoto = $row['photo'];
             $ok = db_exec($conn,
                 "UPDATE workers SET name=:name, profession=:prof, skill=:skill, experience=:exp,
-                    location=:loc, phone=:phone, photo=:photo, rating=:rating, availability=:avail,
+                    location=:loc, phone=:phone, photo=:photo, rating=:rating,
                     pending_edit=NULL, pending_photo=NULL
                  WHERE id=:id",
                 [':name'=>$name, ':prof'=>$profession, ':skill'=>$skill, ':exp'=>$experience,
                  ':loc'=>$location, ':phone'=>$phone, ':photo'=>$photo, ':rating'=>$rating,
-                 ':avail'=>$availability, ':id'=>$id]);
+                 ':id'=>$id]);
             if ($ok) {
                 // Delete old photo only if replaced
                 if ($oldPhoto && $oldPhoto !== $photo && file_exists("uploads/$oldPhoto")) {
@@ -88,12 +87,8 @@ if (isset($_POST['update'])) {
                 $error = "Database error: " . ($e['message'] ?? 'update failed');
             }
         } else {
-            // Worker: availability toggles immediately, no approval needed.
-            db_exec($conn, "UPDATE workers SET availability=:avail WHERE id=:id",
-                [':avail' => $availability, ':id' => $id]);
-
-            // Everything else still requires admin approval — but only queue a
-            // pending edit if something other than availability actually changed.
+            // Worker: profile fields require admin approval. Availability is
+            // managed separately on worker_details.php (no approval needed there).
             $hasOtherChanges =
                 $name       !== $row['name'] ||
                 $profession !== $row['profession'] ||
@@ -150,7 +145,6 @@ $skill      = htmlspecialchars($display['skill']      ?? $row['skill'] ?? '');
 $experience = htmlspecialchars($display['experience'] ?? $row['experience']);
 $location   = htmlspecialchars($display['location']   ?? $row['location']);
 $phone      = htmlspecialchars($display['phone']      ?? $row['phone']);
-$avail      = $display['availability']                ?? $row['availability'] ?? 'available';
 $rating     = (float)($row['rating'] ?? 0);
 $photo      = $row['photo'] ?? '';
 $initials   = strtoupper(implode('', array_map(fn($w) => $w[0], array_slice(explode(' ', $row['name']), 0, 2))));
@@ -235,17 +229,6 @@ input[type="file"]{display:none;}
 .star-group label.star{font-size:24px;cursor:pointer;color:var(--border);transition:color .15s;text-transform:none;letter-spacing:0;}
 .star-group label.star:hover,.star-group label.star:hover~label.star,.star-group input[type="radio"]:checked~label.star{color:var(--warn);}
 .rating-val{font-size:13px;color:var(--muted);margin-left:8px;direction:ltr;align-self:center;}
-
-/* Avail toggle */
-.avail-toggle{display:flex;gap:10px;}
-.avail-option{flex:1;}
-.avail-option input[type="radio"]{display:none;}
-.avail-option label{display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:13.5px;font-weight:500;color:var(--muted);transition:all .2s;text-transform:none;letter-spacing:0;}
-.avail-option input[type="radio"]:checked+label{border-color:var(--accent);background:rgba(79,142,247,.1);color:var(--text);}
-.avail-option.avail-busy input[type="radio"]:checked+label{border-color:var(--danger);background:rgba(248,113,113,.08);color:var(--danger);}
-.avail-dot{width:8px;height:8px;border-radius:50%;}
-.avail-available .avail-dot{background:var(--success);}
-.avail-busy      .avail-dot{background:var(--danger);}
 
 .form-footer{padding:20px 28px 28px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;}
 .change-note{font-size:12px;color:var(--muted);display:none;align-items:center;gap:5px;}
@@ -384,21 +367,6 @@ input[type="file"]{display:none;}
                     </span>
                 </div>
             </div>
-
-            <!-- Availability -->
-            <div class="field">
-                <label>Availability</label>
-                <div class="avail-toggle">
-                    <div class="avail-option avail-available">
-                        <input type="radio" name="availability" id="avail-yes" value="available" <?= ($avail==='available')?'checked':'' ?>>
-                        <label for="avail-yes"><span class="avail-dot"></span> Available</label>
-                    </div>
-                    <div class="avail-option avail-busy">
-                        <input type="radio" name="availability" id="avail-no" value="busy" <?= ($avail==='busy')?'checked':'' ?>>
-                        <label for="avail-no"><span class="avail-dot"></span> Busy</label>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="form-footer">
@@ -445,8 +413,6 @@ document.querySelectorAll('input[name="rating"]').forEach(s=>s.addEventListener(
     const v=document.querySelector('input[name="rating"]:checked')?.value;
     document.getElementById('ratingLabel').textContent=v?v+'.0 / 5':'Not rated'; markDirty();
 }));
-document.querySelectorAll('input[name="availability"]').forEach(r=>r.addEventListener('change',markDirty));
-
 let dirty=false;
 function markDirty(){dirty=true;document.getElementById('changeNote').classList.add('visible');}
 function markChanged(el){

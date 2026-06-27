@@ -117,6 +117,8 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .avail-badge.available{background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);color:var(--success);}
 .avail-badge.busy{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--danger);}
 .avail-badge .dot{width:7px;height:7px;border-radius:50%;background:currentColor;}
+.btn-toggle-avail{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .2s;}
+.btn-toggle-avail:hover{color:var(--text);border-color:var(--accent);background:rgba(79,142,247,.08);}
 
 /* Pending edit badge (for own profile) */
 .pending-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:var(--warn);margin-top:8px;}
@@ -206,12 +208,22 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                             </div>
                         <?php endif; ?>
                     </div>
-                    <?php if ($avail): ?>
-                    <div class="avail-badge <?= $avail === 'available' ? 'available' : 'busy' ?>">
-                        <span class="dot"></span>
-                        <?= ucfirst($avail) ?>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        <?php if ($avail): ?>
+                        <div class="avail-badge <?= $avail === 'available' ? 'available' : 'busy' ?>">
+                            <span class="dot"></span>
+                            <?= ucfirst($avail) ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($isOwnProfile): ?>
+                        <form method="POST" action="toggle_availability.php" style="display:inline;">
+                            <input type="hidden" name="id" value="<?= $id ?>">
+                            <button type="submit" class="btn-toggle-avail">
+                                Mark as <?= $avail === 'available' ? 'Busy' : 'Available' ?>
+                            </button>
+                        </form>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
