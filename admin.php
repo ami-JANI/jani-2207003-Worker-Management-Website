@@ -270,7 +270,7 @@ td{padding:13px 16px;font-size:13.5px;color:var(--text);vertical-align:middle;}
         <?php else: ?>
         <div class="tbl-wrap">
             <table>
-                <thead><tr><th>Worker</th><th>Name</th><th>Profession</th><th>Location</th><th>Availability</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Worker</th><th>Name</th><th>Profession</th><th>Skills</th><th>Location</th><th>Availability</th><th>Actions</th></tr></thead>
                 <tbody>
                 <?php foreach($pending_edits as $w):
                     $p = json_decode($w['pending_edit'], true);
@@ -291,6 +291,12 @@ td{padding:13px 16px;font-size:13.5px;color:var(--text);vertical-align:middle;}
                             <span class="diff-old"><?= htmlspecialchars($w['profession']) ?></span>
                             <span class="diff-new"><?= htmlspecialchars($p['profession']??'') ?></span>
                         <?php else: ?><span class="diff-same"><?= htmlspecialchars($w['profession']) ?></span><?php endif; ?>
+                    </td>
+                    <td class="diff-cell">
+                        <?php if(($p['skill']??'')!==($w['skill']??'')): ?>
+                            <span class="diff-old"><?= htmlspecialchars($w['skill'] ?? '') ?></span>
+                            <span class="diff-new"><?= htmlspecialchars($p['skill']??'') ?></span>
+                        <?php else: ?><span class="diff-same"><?= htmlspecialchars($w['skill'] ?? '') ?></span><?php endif; ?>
                     </td>
                     <td class="diff-cell">
                         <?php if(($p['location']??'')!==$w['location']): ?>
