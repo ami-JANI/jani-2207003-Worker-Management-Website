@@ -202,6 +202,15 @@ input[type="file"]{display:none;}
 
 .field input.changed,.field select.changed{border-color:rgba(245,158,11,.5);box-shadow:0 0 0 3px rgba(245,158,11,.08);}
 
+/* Skills chip input */
+.skills-input{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;transition:border-color .2s,box-shadow .2s;}
+.skills-input:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,142,247,.12);}
+.skills-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.skill-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);color:var(--accent);padding:4px 6px 4px 10px;border-radius:20px;font-size:12.5px;font-weight:500;}
+.skill-chip-remove{background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0 4px;border-radius:50%;}
+.skill-chip-remove:hover{background:rgba(79,142,247,.2);}
+#skillTextInput{flex:1;min-width:120px;background:transparent;border:none;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;padding:4px;}
+
 /* Stars */
 .star-group{direction:rtl;display:inline-flex;gap:4px;}
 .star-group input[type="radio"]{display:none;}
@@ -319,9 +328,13 @@ input[type="file"]{display:none;}
                 <label>Profession</label>
                 <input type="text" name="profession" required value="<?= $profession ?>" data-original="<?= $profession ?>" oninput="markChanged(this)">
             </div>
-            <div class="field">
-                <label>Primary Skill</label>
-                <input type="text" name="skill" value="<?= $skill ?>" data-original="<?= $skill ?>" oninput="markChanged(this)">
+            <div class="field full">
+                <label>Skills</label>
+                <div class="skills-input">
+                    <div class="skills-chips" id="skillsChips"></div>
+                    <input type="text" id="skillTextInput" placeholder="Type a skill and press Enter">
+                </div>
+                <input type="hidden" name="skill" id="skillHidden" value="<?= $skill ?>">
             </div>
             <div class="field">
                 <label>Experience (years)</label>
@@ -432,6 +445,10 @@ function closeNotifPanel(){document.getElementById('notifPanel')?.classList.remo
 function toggleUserMenu(){document.getElementById('userDropdown')?.classList.toggle('open');}
 document.addEventListener('click',e=>{const m=document.getElementById('userMenu');if(m&&!m.contains(e.target))document.getElementById('userDropdown')?.classList.remove('open');});
 function markAllRead(){fetch('mark_read.php');return true;}
+</script>
+<script src="skills.js"></script>
+<script>
+initSkillsInput('skillTextInput', 'skillHidden', 'skillsChips', document.getElementById('skillHidden').value, markDirty);
 </script>
 
 <?php include "footer.php"; ?>
