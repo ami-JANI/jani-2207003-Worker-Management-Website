@@ -27,7 +27,7 @@ CREATE TABLE workers (
     id            NUMBER         PRIMARY KEY,
     name          VARCHAR2(100)  NOT NULL,
     profession    VARCHAR2(100)  NOT NULL,
-    skill         VARCHAR2(200)  DEFAULT '',
+    skill         VARCHAR2(500)  DEFAULT '',  -- comma-separated list of skills
     experience    NUMBER(5)      DEFAULT 0,
     location      VARCHAR2(100)  DEFAULT '',
     phone         VARCHAR2(30)   UNIQUE,

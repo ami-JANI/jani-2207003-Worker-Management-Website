@@ -15,7 +15,7 @@ CREATE TABLE workers (
     id           INT AUTO_INCREMENT PRIMARY KEY,
     name         VARCHAR(100)  NOT NULL,
     profession   VARCHAR(100)  NOT NULL,
-    skill        VARCHAR(200)  DEFAULT '',
+    skill        VARCHAR(500)  DEFAULT '',
     experience   INT           DEFAULT 0,
     location     VARCHAR(100)  DEFAULT '',
     phone        VARCHAR(30)   UNIQUE,
