@@ -343,6 +343,15 @@ input[type="file"] { display: none; }
     cursor: pointer;
 }
 
+/* Skills chip input */
+.skills-input { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:8px 10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; transition:border-color .2s, box-shadow .2s; }
+.skills-input:focus-within { border-color:var(--accent); box-shadow:0 0 0 3px rgba(79,142,247,.12); }
+.skills-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.skill-chip { display:inline-flex; align-items:center; gap:6px; background:rgba(79,142,247,.12); border:1px solid rgba(79,142,247,.3); color:var(--accent); padding:4px 6px 4px 10px; border-radius:20px; font-size:12.5px; font-weight:500; }
+.skill-chip-remove { background:none; border:none; color:var(--accent); cursor:pointer; font-size:14px; line-height:1; padding:0 4px; border-radius:50%; }
+.skill-chip-remove:hover { background:rgba(79,142,247,.2); }
+#skillTextInput { flex:1; min-width:120px; background:transparent; border:none; color:var(--text); font-size:14px; font-family:'DM Sans',sans-serif; outline:none; padding:4px; }
+
 /* Rating stars */
 .star-group {
     display: flex;
@@ -567,10 +576,13 @@ input[type="file"] { display: none; }
                            value="<?= htmlspecialchars($_POST['profession'] ?? '') ?>">
                 </div>
 
-                <div class="field">
-                    <label>Primary Skill</label>
-                    <input type="text" name="skill" placeholder="e.g. Wiring, Solar panels"
-                           value="<?= htmlspecialchars($_POST['skill'] ?? '') ?>">
+                <div class="field full">
+                    <label>Skills</label>
+                    <div class="skills-input">
+                        <div class="skills-chips" id="skillsChips"></div>
+                        <input type="text" id="skillTextInput" placeholder="Type a skill and press Enter">
+                    </div>
+                    <input type="hidden" name="skill" id="skillHidden" value="<?= htmlspecialchars($_POST['skill'] ?? '') ?>">
                 </div>
 
                 <div class="field">
@@ -672,6 +684,10 @@ function updateLabel() {
 
 stars.forEach(s => s.addEventListener('change', updateLabel));
 updateLabel();
+</script>
+<script src="skills.js"></script>
+<script>
+initSkillsInput('skillTextInput', 'skillHidden', 'skillsChips', document.getElementById('skillHidden').value);
 </script>
 
 </body>
