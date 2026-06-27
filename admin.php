@@ -3,77 +3,36 @@ include "db_connect.php";
 include "auth.php";
 requireAdmin();
 
-// Auto-create all required tables if missing
-$conn->query("CREATE TABLE IF NOT EXISTS notifications (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    target_role ENUM('admin','worker','user') NOT NULL,
-    target_id   INT          NOT NULL,
-    message     VARCHAR(500) NOT NULL,
-    link        VARCHAR(300) DEFAULT '',
-    is_read     TINYINT(1)   DEFAULT 0,
-    created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS users (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    name       VARCHAR(100) NOT NULL,
-    phone      VARCHAR(30)  UNIQUE,
-    email      VARCHAR(150) UNIQUE,
-    location   VARCHAR(100) DEFAULT '',
-    password   VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS bookings (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    user_id   INT NOT NULL,
-    worker_id INT NOT NULL,
-    status    ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
-    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS ratings (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL,
-    user_id    INT NOT NULL,
-    worker_id  INT NOT NULL,
-    stars      TINYINT NOT NULL,
-    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_booking (booking_id)
-)");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS approved     TINYINT(1)    DEFAULT 1");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS email        VARCHAR(150)");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS hourly_rate  DECIMAL(10,2) DEFAULT 0.00");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS password     VARCHAR(255)  DEFAULT ''");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS rating_count INT           DEFAULT 0");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS pending_edit TEXT          DEFAULT NULL");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS pending_photo VARCHAR(255) DEFAULT NULL");
+// Schema is managed by oracle_schema.sql — no runtime table/column creation.
 
 $msg = '';
 
 if (isset($_GET['approve'])) {
     $wid = (int)$_GET['approve'];
-    $conn->query("UPDATE workers SET approved=1 WHERE id=$wid");
+    db_exec($conn, "UPDATE workers SET approved=1 WHERE id = :id", [':id' => $wid]);
     sendNotification($conn,'worker',$wid,"Your application has been approved! You can now sign in.","");
     $msg = "Worker approved.";
 }
 if (isset($_GET['reject'])) {
     $wid = (int)$_GET['reject'];
-    $conn->query("DELETE FROM workers WHERE id=$wid");
+    db_exec($conn, "DELETE FROM workers WHERE id = :id", [':id' => $wid]);
     $msg = "Worker rejected and removed.";
 }
 if (isset($_GET['delete_worker'])) {
     $wid = (int)$_GET['delete_worker'];
-    $conn->query("DELETE FROM workers WHERE id=$wid");
+    db_exec($conn, "DELETE FROM workers WHERE id = :id", [':id' => $wid]);
     $msg = "Worker deleted.";
 }
 if (isset($_GET['delete_user'])) {
     $uid = (int)$_GET['delete_user'];
-    $conn->query("DELETE FROM users WHERE id=$uid");
+    db_exec($conn, "DELETE FROM users WHERE id = :id", [':id' => $uid]);
     $msg = "User deleted.";
 }
 
 // Approve a pending profile edit
 if (isset($_GET['approve_edit'])) {
     $wid = (int)$_GET['approve_edit'];
-    $w   = $conn->query("SELECT * FROM workers WHERE id=$wid")->fetch_assoc();
+    $w   = db_one($conn, "SELECT * FROM workers WHERE id = :id", [':id' => $wid]);
     if ($w && !empty($w['pending_edit'])) {
         $data         = json_decode($w['pending_edit'], true);
         $name         = $data['name']         ?? $w['name'];
@@ -89,9 +48,13 @@ if (isset($_GET['approve_edit'])) {
             unlink("uploads/".$w['photo']);
         }
 
-        $stmt2 = $conn->prepare("UPDATE workers SET name=?,profession=?,skill=?,experience=?,location=?,phone=?,photo=?,availability=?,pending_edit=NULL,pending_photo=NULL WHERE id=?");
-        $stmt2->bind_param("sssissssi", $name,$profession,$skill,$experience,$location,$phone,$photo,$availability,$wid);
-        $stmt2->execute();
+        db_exec($conn,
+            "UPDATE workers SET name=:name, profession=:prof, skill=:skill, experience=:exp,
+                location=:loc, phone=:phone, photo=:photo, availability=:avail,
+                pending_edit=NULL, pending_photo=NULL
+             WHERE id=:id",
+            [':name'=>$name, ':prof'=>$profession, ':skill'=>$skill, ':exp'=>$experience,
+             ':loc'=>$location, ':phone'=>$phone, ':photo'=>$photo, ':avail'=>$availability, ':id'=>$wid]);
         sendNotification($conn,'worker',$wid,"Your profile edit has been approved and is now live!","worker_details.php?id=$wid");
         $msg = "Profile edit approved and applied.";
     }
@@ -100,11 +63,11 @@ if (isset($_GET['approve_edit'])) {
 // Reject a pending profile edit
 if (isset($_GET['reject_edit'])) {
     $wid = (int)$_GET['reject_edit'];
-    $w   = $conn->query("SELECT pending_photo FROM workers WHERE id=$wid")->fetch_assoc();
+    $w   = db_one($conn, "SELECT pending_photo FROM workers WHERE id = :id", [':id' => $wid]);
     if (!empty($w['pending_photo']) && file_exists("uploads/".$w['pending_photo'])) {
         unlink("uploads/".$w['pending_photo']);
     }
-    $conn->query("UPDATE workers SET pending_edit=NULL, pending_photo=NULL WHERE id=$wid");
+    db_exec($conn, "UPDATE workers SET pending_edit=NULL, pending_photo=NULL WHERE id = :id", [':id' => $wid]);
     sendNotification($conn,'worker',$wid,"Your profile edit was not approved. Please contact an admin for details.","");
     $msg = "Profile edit rejected.";
 }
@@ -129,17 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_notif'])) {
     }
 }
 
-// Ensure pending columns exist
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS pending_edit TEXT DEFAULT NULL");
-$conn->query("ALTER TABLE workers ADD COLUMN IF NOT EXISTS pending_photo VARCHAR(255) DEFAULT NULL");
-
-$pending      = $conn->query("SELECT * FROM workers WHERE approved=0 ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
-$pending_edits= $conn->query("SELECT * FROM workers WHERE approved=1 AND pending_edit IS NOT NULL ORDER BY name")->fetch_all(MYSQLI_ASSOC);
-$workers      = $conn->query("SELECT * FROM workers WHERE approved=1 ORDER BY name")->fetch_all(MYSQLI_ASSOC);
-$users        = $conn->query("SELECT * FROM users ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
+$pending      = db_all($conn, "SELECT * FROM workers WHERE approved=0 ORDER BY created_at DESC");
+$pending_edits= db_all($conn, "SELECT * FROM workers WHERE approved=1 AND pending_edit IS NOT NULL ORDER BY name");
+$workers      = db_all($conn, "SELECT * FROM workers WHERE approved=1 ORDER BY name");
+$users        = db_all($conn, "SELECT * FROM users ORDER BY created_at DESC");
 $notifs       = getNotifications($conn, 50);
 // Fetch all broadcast notifications sent by admin (target_id=0)
-$broadcasts   = $conn->query("SELECT * FROM notifications WHERE target_id=0 ORDER BY created_at DESC LIMIT 50")->fetch_all(MYSQLI_ASSOC);
+$broadcasts   = db_all($conn, "SELECT * FROM (SELECT * FROM notifications WHERE target_id=0 ORDER BY created_at DESC) WHERE ROWNUM <= 50");
 $unread       = getUnreadCount($conn);
 $su           = sessionUser();
 ?>
