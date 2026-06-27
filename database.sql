@@ -27,6 +27,8 @@ CREATE TABLE workers (
     hourly_rate  DECIMAL(10,2) DEFAULT 0.00,
     password     VARCHAR(255)  NOT NULL,
     approved     TINYINT(1)    DEFAULT 0,
+    pending_edit  TEXT         DEFAULT NULL,
+    pending_photo VARCHAR(255) DEFAULT NULL,
     created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -55,7 +57,7 @@ CREATE TABLE bookings (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT NOT NULL,
     worker_id   INT NOT NULL,
-    status      ENUM('pending','confirmed','completed','cancelled') DEFAULT 'pending',
+    status      ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
     booked_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
     FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE CASCADE

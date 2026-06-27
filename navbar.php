@@ -76,7 +76,7 @@ $su     = sessionUser();
         <?php else: ?>
             <?php foreach ($notifs as $n): ?>
             <a class="notif-item <?= $n['is_read'] ? '' : 'unread' ?>"
-               href="<?= $n['link'] ?: '#' ?>">
+               href="<?= htmlspecialchars($n['link'] ?: '#') ?>">
                 <div class="notif-dot"></div>
                 <div class="notif-content">
                     <p><?= htmlspecialchars($n['message']) ?></p>
