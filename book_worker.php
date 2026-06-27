@@ -6,23 +6,7 @@
 include "db_connect.php";
 include "auth.php";
 
-// Auto-create tables if missing
-$conn->query("CREATE TABLE IF NOT EXISTS bookings (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    user_id   INT NOT NULL,
-    worker_id INT NOT NULL,
-    status    ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
-    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS ratings (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL UNIQUE,
-    user_id    INT NOT NULL,
-    worker_id  INT NOT NULL,
-    stars      TINYINT NOT NULL,
-    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
-
+// Schema is managed by oracle_schema.sql — no runtime table creation.
 
 if (!isUser()) { header("Location: signin.php"); exit; }
 
@@ -30,32 +14,30 @@ $worker_id = (int)($_POST['worker_id'] ?? 0);
 if (!$worker_id) { header("Location: index.php"); exit; }
 
 // Fetch worker
-$stmt = $conn->prepare("SELECT id, name, availability, approved FROM workers WHERE id=?");
-$stmt->bind_param("i", $worker_id);
-$stmt->execute();
-$w = $stmt->get_result()->fetch_assoc();
+$w = db_one($conn, "SELECT id, name, availability, approved FROM workers WHERE id = :id", [':id' => $worker_id]);
 
 if (!$w || $w['availability'] !== 'available' || !$w['approved']) {
     header("Location: worker_details.php?id=$worker_id&err=unavailable");
     exit;
 }
 
-$user_id = $_SESSION['uid'];
+$user_id = (int)$_SESSION['uid'];
 
 // Check if user already has an active (non-cancelled/completed) booking with this worker
-$stmt2 = $conn->prepare("SELECT id FROM bookings WHERE user_id=? AND worker_id=? AND status IN ('pending','confirmed','awaiting_user')");
-$stmt2->bind_param("ii", $user_id, $worker_id);
-$stmt2->execute();
-if ($stmt2->get_result()->num_rows > 0) {
+$existing = db_one($conn,
+    "SELECT id FROM bookings WHERE user_id = :uid AND worker_id = :wid
+     AND status IN ('pending','confirmed','awaiting_user')",
+    [':uid' => $user_id, ':wid' => $worker_id]);
+if ($existing) {
     header("Location: worker_details.php?id=$worker_id&err=already");
     exit;
 }
 
 // Create booking
-$stmt3 = $conn->prepare("INSERT INTO bookings (user_id, worker_id, status) VALUES (?,?,'pending')");
-$stmt3->bind_param("ii", $user_id, $worker_id);
-$stmt3->execute();
-$booking_id = $conn->insert_id;
+$booking_id = db_insert_id($conn,
+    "INSERT INTO bookings (user_id, worker_id, status)
+     VALUES (:uid, :wid, 'pending') RETURNING id INTO :new_id",
+    [':uid' => $user_id, ':wid' => $worker_id]);
 
 // Notify worker
 $user_name = $_SESSION['name'];

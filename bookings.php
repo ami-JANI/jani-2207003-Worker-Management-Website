@@ -2,60 +2,38 @@
 include "db_connect.php";
 include "auth.php";
 
-// Auto-create tables if missing
-$conn->query("CREATE TABLE IF NOT EXISTS bookings (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    user_id   INT NOT NULL,
-    worker_id INT NOT NULL,
-    status    ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
-    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)");
-$conn->query("CREATE TABLE IF NOT EXISTS ratings (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL,
-    user_id    INT NOT NULL,
-    worker_id  INT NOT NULL,
-    stars      TINYINT NOT NULL,
-    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY unique_booking (booking_id)
-)");
-// Ensure no stale unique constraint on user+worker combo
-$conn->query("ALTER TABLE ratings DROP INDEX IF EXISTS unique_user_worker");
-// Ensure booking_id unique index exists
-$conn->query("ALTER IGNORE TABLE ratings ADD UNIQUE INDEX IF NOT EXISTS unique_booking (booking_id)");
+// Schema is managed by oracle_schema.sql — no runtime table creation.
 
 requireLogin();
 
-$uid  = $_SESSION['uid'];
+$uid  = (int)$_SESSION['uid'];
 $role = $_SESSION['role'];
 
 // ── Fetch bookings based on role ─────────────────────────────
 if (isUser()) {
-    $stmt = $conn->prepare("
+    $sql = "
         SELECT b.*, w.name AS worker_name, w.profession, w.photo AS worker_photo,
                w.hourly_rate, w.location AS worker_location,
                (SELECT id    FROM ratings WHERE booking_id=b.id) AS rating_id,
                (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN workers w ON w.id = b.worker_id
-        WHERE b.user_id = ?
-        ORDER BY b.booked_at DESC
-    ");
-    $stmt->bind_param("i", $uid);
+        WHERE b.user_id = :uid
+        ORDER BY b.booked_at DESC";
+    $binds = [':uid' => $uid];
 } elseif (isWorker()) {
-    $stmt = $conn->prepare("
+    $sql = "
         SELECT b.*, u.name AS user_name, u.phone AS user_phone, u.location AS user_location,
                (SELECT id    FROM ratings WHERE booking_id=b.id) AS rating_id,
                (SELECT stars FROM ratings WHERE booking_id=b.id) AS rating_stars
         FROM bookings b
         JOIN users u ON u.id = b.user_id
-        WHERE b.worker_id = ?
-        ORDER BY b.booked_at DESC
-    ");
-    $stmt->bind_param("i", $uid);
+        WHERE b.worker_id = :uid
+        ORDER BY b.booked_at DESC";
+    $binds = [':uid' => $uid];
 } else {
     // Admin: see all
-    $stmt = $conn->prepare("
+    $sql = "
         SELECT b.*,
                w.name AS worker_name, w.profession, w.photo AS worker_photo,
                u.name AS user_name, u.phone AS user_phone,
@@ -64,11 +42,17 @@ if (isUser()) {
         FROM bookings b
         JOIN workers w ON w.id = b.worker_id
         JOIN users   u ON u.id = b.user_id
-        ORDER BY b.booked_at DESC
-    ");
+        ORDER BY b.booked_at DESC";
+    $binds = [];
 }
-$stmt->execute();
-$all = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$all = db_all($conn, $sql, $binds);
+// Normalize ids to int for strict comparisons (OCI returns NUMBER as string)
+foreach ($all as &$_r) {
+    $_r['id']        = (int)$_r['id'];
+    if (isset($_r['worker_id'])) $_r['worker_id'] = (int)$_r['worker_id'];
+    if (isset($_r['user_id']))   $_r['user_id']   = (int)$_r['user_id'];
+}
+unset($_r);
 
 $active   = array_filter($all, fn($b) => in_array($b['status'], ['pending','confirmed','awaiting_user']));
 $previous = array_filter($all, fn($b) => in_array($b['status'], ['completed','cancelled']));
