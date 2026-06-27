@@ -88,7 +88,26 @@ if (isset($_POST['update'])) {
                 $error = "Database error: " . ($e['message'] ?? 'update failed');
             }
         } else {
-            // Worker: store as pending edit, set approved=0 until admin reviews
+            // Worker: availability toggles immediately, no approval needed.
+            db_exec($conn, "UPDATE workers SET availability=:avail WHERE id=:id",
+                [':avail' => $availability, ':id' => $id]);
+
+            // Everything else still requires admin approval — but only queue a
+            // pending edit if something other than availability actually changed.
+            $hasOtherChanges =
+                $name       !== $row['name'] ||
+                $profession !== $row['profession'] ||
+                $skill      !== ($row['skill'] ?? '') ||
+                $experience !== (int)$row['experience'] ||
+                $location   !== $row['location'] ||
+                $phone      !== $row['phone'] ||
+                $photo      !== $row['photo'];
+
+            if (!$hasOtherChanges) {
+                header("Location: worker_details.php?id=$id&updated=1");
+                exit;
+            }
+
             $pendingData = json_encode([
                 'name'         => $name,
                 'profession'   => $profession,
@@ -96,7 +115,6 @@ if (isset($_POST['update'])) {
                 'experience'   => $experience,
                 'location'     => $location,
                 'phone'        => $phone,
-                'availability' => $availability,
             ]);
             $pendingPhoto = ($photo !== $row['photo']) ? $photo : null;
 

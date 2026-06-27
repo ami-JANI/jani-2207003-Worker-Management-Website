@@ -305,9 +305,9 @@ td{padding:13px 16px;font-size:13.5px;color:var(--text);vertical-align:middle;}
                         <?php else: ?><span class="diff-same"><?= htmlspecialchars($w['location']) ?></span><?php endif; ?>
                     </td>
                     <td class="diff-cell">
-                        <?php if(($p['availability']??'')!==$w['availability']): ?>
+                        <?php if(array_key_exists('availability',$p) && $p['availability']!==$w['availability']): ?>
                             <span class="diff-old"><?= htmlspecialchars($w['availability']) ?></span>
-                            <span class="diff-new"><?= htmlspecialchars($p['availability']??'') ?></span>
+                            <span class="diff-new"><?= htmlspecialchars($p['availability']) ?></span>
                         <?php else: ?><span class="diff-same"><?= htmlspecialchars($w['availability']) ?></span><?php endif; ?>
                     </td>
                     <td><div class="act-btns">
