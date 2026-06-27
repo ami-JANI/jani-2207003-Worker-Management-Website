@@ -6,6 +6,24 @@
 include "db_connect.php";
 include "auth.php";
 
+// Auto-create tables if missing
+$conn->query("CREATE TABLE IF NOT EXISTS bookings (
+    id        INT AUTO_INCREMENT PRIMARY KEY,
+    user_id   INT NOT NULL,
+    worker_id INT NOT NULL,
+    status    ENUM('pending','confirmed','awaiting_user','completed','cancelled') DEFAULT 'pending',
+    booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+$conn->query("CREATE TABLE IF NOT EXISTS ratings (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    booking_id INT NOT NULL UNIQUE,
+    user_id    INT NOT NULL,
+    worker_id  INT NOT NULL,
+    stars      TINYINT NOT NULL,
+    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)");
+
+
 if (!isUser()) { header("Location: signin.php"); exit; }
 
 $worker_id = (int)($_POST['worker_id'] ?? 0);

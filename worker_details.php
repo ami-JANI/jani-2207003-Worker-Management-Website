@@ -12,12 +12,17 @@ $conn->query("CREATE TABLE IF NOT EXISTS bookings (
 )");
 $conn->query("CREATE TABLE IF NOT EXISTS ratings (
     id         INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL UNIQUE,
+    booking_id INT NOT NULL,
     user_id    INT NOT NULL,
     worker_id  INT NOT NULL,
     stars      TINYINT NOT NULL,
-    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    rated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_booking (booking_id)
 )");
+// Ensure no stale unique constraint on user+worker combo
+$conn->query("ALTER TABLE ratings DROP INDEX IF EXISTS unique_user_worker");
+// Ensure booking_id unique index exists
+$conn->query("ALTER IGNORE TABLE ratings ADD UNIQUE INDEX IF NOT EXISTS unique_booking (booking_id)");
 
 if (empty($_GET['id'])) { header("Location: index.php"); exit; }
 $id = (int)$_GET['id'];
@@ -106,6 +111,7 @@ $unread = isLoggedIn() ? getUnreadCount($conn) : 0;
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
 </style>
 <style><?php include "navbar.css"; ?></style>
+<style><?php include "footer.css"; ?></style>
 <style>
 .page{padding-top:calc(var(--navbar-h)+36px);padding-bottom:60px;max-width:900px;margin:0 auto;padding-left:24px;padding-right:24px;}
 
@@ -372,5 +378,7 @@ function toggleUserMenu(){document.getElementById('userDropdown')?.classList.tog
 document.addEventListener('click',e=>{const m=document.getElementById('userMenu');if(m&&!m.contains(e.target))document.getElementById('userDropdown')?.classList.remove('open');});
 function markAllRead(){fetch('mark_read.php');return true;}
 </script>
+
+<?php include "footer.php"; ?>
 </body>
 </html>

@@ -156,6 +156,7 @@ $su           = sessionUser();
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
 </style>
 <style><?php include "navbar.css"; ?></style>
+<style><?php include "footer.css"; ?></style>
 <style>
 .page{padding-top:calc(var(--navbar-h)+30px);max-width:1100px;margin:0 auto;padding-left:24px;padding-right:24px;padding-bottom:60px;}
 .page-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:24px;}
@@ -552,5 +553,7 @@ function toggleUserMenu(){document.getElementById('userDropdown')?.classList.tog
 document.addEventListener('click',e=>{const m=document.getElementById('userMenu');if(m&&!m.contains(e.target))document.getElementById('userDropdown')?.classList.remove('open');});
 function markAllRead(){fetch('mark_read.php');return true;}
 </script>
+
+<?php include "footer.php"; ?>
 </body>
 </html>
