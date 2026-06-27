@@ -71,16 +71,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .btn-reset{width:100%;padding:10px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:9px;font-size:13.5px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:color .2s,border-color .2s;}
 .btn-reset:hover{color:var(--text);border-color:var(--muted);}
 
-/* ── MY LOCATION ── */
-.my-location-current{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
-.btn-mylocation{display:block;text-align:center;padding:8px;border-radius:8px;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.25);color:var(--accent);font-size:12.5px;font-weight:600;text-decoration:none;transition:background .2s;}
-.btn-mylocation:hover{background:rgba(79,142,247,.18);}
-.my-location-form{display:flex;gap:6px;}
-.my-location-form input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s;}
-.my-location-form input:focus{border-color:var(--accent);}
-.btn-mylocation-save{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .2s,border-color .2s;}
-.btn-mylocation-save:hover{color:var(--text);border-color:var(--accent);}
-
 /* ── MAIN ── */
 .main{margin-left:var(--sidebar-w);flex:1;padding:28px 28px 40px;}
 .main-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;}
@@ -147,8 +137,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
         <div class="filter-group">
             <label>Location</label>
-            <select id="f-location">
+            <select id="f-location" onchange="handleLocationChange(this)">
                 <option value="">All Locations</option>
+                <?php if (isUser()): ?>
+                <option value="<?= $myLocation !== '' ? htmlspecialchars($myLocation) : '__set_my_location__' ?>"
+                    <?= ($myLocation !== '' && ($_GET['location'] ?? '') === $myLocation) ? 'selected' : '' ?>>
+                    📍 My Location<?= $myLocation !== '' ? ' (' . htmlspecialchars($myLocation) . ')' : '' ?>
+                </option>
+                <?php endif; ?>
                 <?php
                 $locs = db_all($conn, "SELECT DISTINCT location FROM workers WHERE approved=1 ORDER BY location");
                 foreach ($locs as $l) {
@@ -158,20 +154,6 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
                 ?>
             </select>
         </div>
-
-        <?php if (isUser()): ?>
-        <div class="filter-group my-location-box">
-            <label>My Location</label>
-            <?php if ($myLocation !== ''): ?>
-                <div class="my-location-current">📍 <?= htmlspecialchars($myLocation) ?></div>
-                <a class="btn-mylocation" href="index.php?location=<?= rawurlencode($myLocation) ?>">Browse Near Me</a>
-            <?php endif; ?>
-            <form method="POST" action="update_location.php" class="my-location-form">
-                <input type="text" name="location" placeholder="<?= $myLocation !== '' ? 'Update location' : 'Set your location' ?>" value="<?= htmlspecialchars($myLocation) ?>">
-                <button type="submit" class="btn-mylocation-save"><?= $myLocation !== '' ? 'Update' : 'Save' ?></button>
-            </form>
-        </div>
-        <?php endif; ?>
 
         <div class="filter-group">
             <label>Min Experience (yrs)</label>
@@ -259,6 +241,22 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <?php include "footer.php"; ?>
 
 <script>
+const myLocation = <?= json_encode($myLocation) ?>;
+
+function handleLocationChange(sel) {
+    if (sel.value !== '__set_my_location__') return; // a real location — let Apply Filters pick it up
+    const input = prompt('Enter your location:', myLocation || '');
+    if (input === null || input.trim() === '') { sel.value = ''; return; }
+    const f = document.createElement('form');
+    f.method = 'POST';
+    f.action = 'update_location.php';
+    const i = document.createElement('input');
+    i.type = 'hidden'; i.name = 'location'; i.value = input.trim();
+    f.appendChild(i);
+    document.body.appendChild(f);
+    f.submit();
+}
+
 function applyFilters() {
     const p = new URLSearchParams();
     const v = id => document.getElementById(id)?.value;
