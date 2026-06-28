@@ -57,6 +57,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-s
 .brand a {
     font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 800;
     color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 9px;
+    white-space: nowrap;
 }
 .brand .dot { width:8px; height:8px; border-radius:50%; background: linear-gradient(135deg,var(--accent),var(--accent2)); }
 

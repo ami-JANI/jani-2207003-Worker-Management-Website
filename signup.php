@@ -111,7 +111,7 @@ $type = $_POST['type'] ?? 'user';
 body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; padding-top:82px; padding-bottom:60px; display:flex; flex-direction:column; align-items:center; }
 
 .brand { position:fixed; top:0; left:0; right:0; height:62px; display:flex; align-items:center; padding:0 28px; background:rgba(15,17,23,.92); backdrop-filter:blur(14px); border-bottom:1px solid var(--border); z-index:10; }
-.brand a { font-family:'Syne',sans-serif; font-size:19px; font-weight:800; color:var(--text); text-decoration:none; display:flex; align-items:center; gap:9px; }
+.brand a { font-family:'Syne',sans-serif; font-size:19px; font-weight:800; color:var(--text); text-decoration:none; display:flex; align-items:center; gap:9px; white-space:nowrap; }
 .brand .dot { width:8px; height:8px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); }
 
 .page-head { width:100%; max-width:560px; padding:0 20px; margin-bottom:24px; }
