@@ -80,7 +80,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <style><?php include "navbar.css"; ?></style>
 <style><?php include "footer.css"; ?></style>
 <style>
-.page{padding-top:calc(var(--navbar-h)+32px);padding-bottom:60px;max-width:900px;margin:0 auto;padding-left:24px;padding-right:24px;}
+.page{padding-top:32px;padding-bottom:60px;max-width:900px;margin:0 auto;padding-left:24px;padding-right:24px;}
 
 .page-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:28px;}
 .page-header h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}

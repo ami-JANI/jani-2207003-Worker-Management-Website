@@ -117,7 +117,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <style><?php include "navbar.css"; ?></style>
 <style><?php include "footer.css"; ?></style>
 <style>
-.page{padding-top:calc(var(--navbar-h)+30px);max-width:1100px;margin:0 auto;padding-left:24px;padding-right:24px;padding-bottom:60px;}
+.page{padding-top:30px;max-width:1100px;margin:0 auto;padding-left:24px;padding-right:24px;padding-bottom:60px;}
 .page-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:24px;}
 .msg{padding:12px 16px;border-radius:9px;font-size:13.5px;font-weight:500;margin-bottom:20px;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.3);color:var(--success);}
 

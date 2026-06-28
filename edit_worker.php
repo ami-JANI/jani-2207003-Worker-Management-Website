@@ -164,7 +164,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <style><?php include "navbar.css"; ?></style>
 <style><?php include "footer.css"; ?></style>
 <style>
-.page{padding-top:calc(var(--navbar-h)+36px);padding-bottom:60px;max-width:720px;margin:0 auto;padding-left:24px;padding-right:24px;}
+.page{padding-top:36px;padding-bottom:60px;max-width:720px;margin:0 auto;padding-left:24px;padding-right:24px;}
 .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;text-decoration:none;margin-bottom:24px;transition:color .2s;}
 .back-link:hover{color:var(--text);}
 .back-link svg{width:14px;height:14px;}
