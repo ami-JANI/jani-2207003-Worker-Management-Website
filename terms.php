@@ -19,7 +19,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <style><?php include "navbar.css"; ?></style>
 <style><?php include "footer.css"; ?></style>
 <style>
-.page{padding-top:calc(var(--navbar-h)+48px);flex:1;}
+.page{padding-top:40px;flex:1;}
 .page-inner{max-width:780px;margin:0 auto;padding:0 24px 60px;}
 .doc-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:var(--accent2);margin-bottom:12px;}
 .doc-title{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;letter-spacing:-1px;line-height:1.15;margin-bottom:14px;}
