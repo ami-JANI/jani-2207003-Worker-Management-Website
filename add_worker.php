@@ -89,16 +89,18 @@ body {
 
 /* ── NAVBAR ── */
 .navbar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: var(--navbar-h);
+    position: sticky;
+    top: 0;
+    min-height: var(--navbar-h);
     background: rgba(15,17,23,0.92);
     backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 28px;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 8px 28px;
     z-index: 100;
 }
 
@@ -112,6 +114,8 @@ body {
     display: flex;
     align-items: center;
     gap: 9px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .navbar-brand .dot {
@@ -120,7 +124,7 @@ body {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
 }
 
-.nav-links { display: flex; align-items: center; gap: 6px; }
+.nav-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .nav-links a {
     color: var(--muted);
     text-decoration: none;
@@ -135,7 +139,7 @@ body {
 
 /* ── PAGE ── */
 .page {
-    padding-top: calc(var(--navbar-h) + 40px);
+    padding-top: 40px;
     padding-bottom: 60px;
     display: flex;
     justify-content: center;
