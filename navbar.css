@@ -1,16 +1,18 @@
 /* ── NAVBAR SHARED STYLES ── paste into every page's <style> or link as stylesheet */
 
 .navbar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: var(--navbar-h);
+    position: sticky;
+    top: 0;
+    min-height: var(--navbar-h);
     background: rgba(15,17,23,0.92);
     backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 28px;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 8px 28px;
     z-index: 200;
 }
 
@@ -24,6 +26,8 @@
     display: flex;
     align-items: center;
     gap: 9px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .navbar-brand .dot {
@@ -32,7 +36,13 @@
     background: linear-gradient(135deg, var(--accent), var(--accent2));
 }
 
-.nav-links { display: flex; align-items: center; gap: 6px; }
+.nav-links { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 600px) {
+    .navbar { padding: 8px 16px; }
+    .nav-links { gap: 4px; }
+    .nav-links a { padding: 6px 10px; }
+}
 
 .nav-links a {
     color: var(--muted);
