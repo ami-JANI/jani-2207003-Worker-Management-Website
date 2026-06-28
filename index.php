@@ -52,7 +52,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 <style><?php include "footer.css"; ?></style>
 <style>
 /* ── LAYOUT ── */
-.layout{display:flex;padding-top:var(--navbar-h);flex:1;}
+.layout{display:flex;flex:1;}
 
 /* ── SIDEBAR ── */
 .sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);position:fixed;top:var(--navbar-h);left:0;bottom:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:24px 20px;display:flex;flex-direction:column;gap:20px;z-index:50;}
